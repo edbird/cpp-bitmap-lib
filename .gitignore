@@ -33,3 +33,6 @@
 
 # Image Files
 *.bmp
+
+# Source (gvim) backup
+*.swp
