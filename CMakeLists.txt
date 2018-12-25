@@ -7,8 +7,14 @@ SET(CMAKE_BUILD_TYPE DEBUG)
 
 SET(SOURCE_FILES
     src/main.cpp
-    src/bitmap.cpp)
+    src/bitmap.cpp
+    src/pixelrgb.cpp)
 
 ADD_EXECUTABLE(a ${SOURCE_FILES})
 
-INCLUDE_DIRECTORIES(include)
+SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+FIND_PACKAGE(SFML REQUIRED graphics window system)
+
+INCLUDE_DIRECTORIES(include ~/SFML-GUI ${SFML_INCLUDE_DIR})
+
+TARGET_LINK_LIBRARIES(a ${SFML_LIBRARIES})

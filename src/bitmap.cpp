@@ -221,6 +221,64 @@ void BMP::BITMAP::SaveAs(const std::string& filename) const
 }
 
 
+#include <cstring>
+std::vector<unsigned char> BMP::BITMAP::SaveMem() const
+{
+
+    // memory storage
+    std::vector<unsigned char> memory;
+
+
+    BITMAPFILEHEADER f_head;
+    f_head.bfType = ushort_rev(((WORD)'B' << 0x08) | ((WORD)'M' << 0x00));
+    f_head.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + m_width_memory * m_height; //m_bit_count *
+    f_head.bfReserved1 = 0;
+    f_head.bfReserved2 = 0;
+    f_head.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+
+
+    // build standard bitmap file header
+    BITMAPINFOHEADER i_head;
+    i_head.biSize = sizeof(BITMAPINFOHEADER);
+    i_head.biWidth = m_width;
+    i_head.biHeight = m_height;
+    i_head.biPlanes = 1;
+    i_head.biBitCount = m_bit_count;
+    i_head.biCompression = 0;
+    i_head.biSizeImage = m_width_memory * m_height;
+    i_head.biXPelsPerMeter = 0;
+    i_head.biYPelsPerMeter = 0;
+    i_head.biClrUsed = 0;
+    i_head.biClrImportant = 0;
+
+
+    // alloc
+    memory.resize(f_head.bfSize);
+
+    //std::copy(&f_head, &f_head + sizeof(f_head), memory.at(0));
+    //std::copy(&i_head, &i_head + sizeof(i_head), memory.at(0) + sizeof(f_head));
+    memcpy(memory.data() + 0, &f_head, sizeof(f_head));
+    memcpy(memory.data() + sizeof(f_head), &i_head, sizeof(i_head));
+
+
+    // write data
+    for(unsigned int y = 0; y < m_height; ++ y)
+    {
+        //outputfile.write((char*)(m_data + y * (3 * m_size_x)), 3 * m_size_x);
+        //outputfile.write((char*)(&m_data[y * m_width_memory]), m_width_memory);
+        //std::copy(&m_data[y * m_width_memory], m_data[y * m_width_memory + m_width_memory], memory.at(0) + sizeof(f_head) + sizeof(i_head));
+        memcpy(memory.data() + sizeof(f_head) + sizeof(i_head) + y * m_width_memory, m_data.data() + y * m_width_memory, m_width_memory);
+
+        // TODO: need to add a m_size_x_pad variable and m_x_pad variable, and include the padding in memory
+        // don't bother putting zeros for padding, just write whatever is in the memory array
+        //for(unsigned int p = 0; p < x_pad; ++ p)
+        //	outputfile.put(0); // put as many zeros required for padding
+    }
+
+    return std::move(memory);
+}
+
+
 
 void BMP::BITMAP::LoadBITMAP(const std::string& filename)
 {
@@ -527,6 +585,13 @@ void BMP::BITMAP::Clear()
     }
 }
 
+/*
+std::vector<uint8_t>& BMP::BITMAP::Data()
+{
+    return m_data;
+}
+*/
+
 
 void BMP::BITMAP::RGBFilterGeneric(const uint8_t r, const uint8_t g, const uint8_t b, FunctorKernel functorkernel)
 {
@@ -559,8 +624,29 @@ void BMP::BITMAP::RGBFilterXOR(const uint8_t r, const uint8_t g, const uint8_t b
 }
 
 
+void BMP::BITMAP::Resize(const int width, const int height)
+{
+    BITMAP temp(width, height, m_bit_count);
+
+    for(int y{0}; y < height; ++ y)
+    {
+        for(int x{0}; x < width; ++ x)
+        {
+            int y_in{(m_height * y) / height};
+            int x_in{(m_width * x) / width};
+            temp.m_data[temp.index(x, y) + 2] = m_data[index(x_in, y_in) + 2];
+            temp.m_data[temp.index(x, y) + 1] = m_data[index(x_in, y_in) + 1];
+            temp.m_data[temp.index(x, y) + 0] = m_data[index(x_in, y_in) + 0];
+        }
+    }
+
+    *this = temp;
+}
+
+
 // TODO: want to implement using pixels (RGB)
 // require get/set and pixel struct
+// TODO: LONG vs int
 void BMP::BITMAP::Translate(const int dx, const int dy)
 {
     BITMAP temp(m_width, m_height, m_bit_count);
@@ -606,6 +692,7 @@ void BMP::BITMAP::Translate(const int dx, const int dy)
 }
 
 
+/*
 void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel)
 {
     // iterate over output
@@ -634,14 +721,15 @@ void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel
                 }
                 else
                 {
-                    functorkernel.operator()(&m_data[index(x, y) + 2], &bitmap.m_data[index(x, y) + 2]);
-                    functorkernel.operator()(&m_data[index(x, y) + 1], &bitmap.m_data[index(x, y) + 1]);
-                    functorkernel.operator()(&m_data[index(x, y) + 0], &bitmap.m_data[index(x, y) + 0]);
+                    kernel.operator()(&m_data[index(x, y) + 2], &bitmap.m_data[index(x, y) + 2]);
+                    kernel.operator()(&m_data[index(x, y) + 1], &bitmap.m_data[index(x, y) + 1]);
+                    kernel.operator()(&m_data[index(x, y) + 0], &bitmap.m_data[index(x, y) + 0]);
                 }
             }
         }
     }
 }
+*/
 
 
 // TODO: versions where x and y are translated
@@ -649,17 +737,17 @@ void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel
 void BMP::BITMAP::OperatorKernelBinary(const BITMAP& bitmap_l, const BITMAP& bitmap_r, FunctorKernel kernel)
 {
     // iterate over output
-    int y_min{0};
-    int y_max{m_height};
+    LONG y_min{0};
+    LONG y_max{m_height};
     if(y_max >= bitmap_l.m_height) y_max = bitmap_l.m_height;
     if(y_max >= bitmap_r.m_height) y_max = bitmap_r.m_height;
-    for(int y{y_min}; y < y_max; ++ y)
+    for(LONG y{y_min}; y < y_max; ++ y)
     {
-        int x_min{0};
-        int x_max{m_width};
+        LONG x_min{0};
+        LONG x_max{m_width};
         if(x_max >= bitmap_l.m_width) x_max = bitmap_l.m_width;
         if(x_max >= bitmap_r.m_width) x_max = bitmap_r.m_width;
-        for(int x{x_min}; x < x_max; ++ x)
+        for(LONG x{x_min}; x < x_max; ++ x)
         {
             void* const output_addr{&m_data[index(x, y)]};
             const void* const input_addr_l{&bitmap_l.m_data[index(x, y)]};
@@ -667,7 +755,7 @@ void BMP::BITMAP::OperatorKernelBinary(const BITMAP& bitmap_l, const BITMAP& bit
             PixelRGB &output_ref{*((PixelRGB* const)output_addr)};
             const PixelRGB &input_ref_l{*((const PixelRGB* const)input_addr_l)};
             const PixelRGB &input_ref_r{*((const PixelRGB* const)input_addr_r)};
-            functorkernel.operator()(output_ref, input_ref_l, input_ref_r, kernel);
+            kernel.operator()(output_ref, input_ref_l, input_ref_r);
         }
     }
 }
@@ -675,21 +763,21 @@ void BMP::BITMAP::OperatorKernelBinary(const BITMAP& bitmap_l, const BITMAP& bit
 void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel)
 {
     // iterate over output
-    int y_min{0};
-    int y_max{m_height};
+    LONG y_min{0};
+    LONG y_max{m_height};
     if(y_max >= bitmap.m_height) y_max = bitmap.m_height;
-    for(int y{y_min}; y < y_max; ++ y)
+    for(LONG y{y_min}; y < y_max; ++ y)
     {
-        int x_min{0};
-        int x_max{m_width};
+        LONG x_min{0};
+        LONG x_max{m_width};
         if(x_max >= bitmap.m_width) x_max = bitmap.m_width;
-        for(int x{x_min}; x < x_max; ++ x)
+        for(LONG x{x_min}; x < x_max; ++ x)
         {
             void* const output_addr{&m_data[index(x, y)]};
             const void* const input_addr{&bitmap.m_data[index(x, y)]};
             PixelRGB &output_ref{*((PixelRGB* const)output_addr)};
             const PixelRGB &input_ref{*((const PixelRGB* const)input_addr)};
-            functorkernel.operator()(output_ref, input_ref, kernel);
+            kernel.operator()(output_ref, input_ref);
         }
     }
 }

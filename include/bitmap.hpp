@@ -2,6 +2,10 @@
 #define BITMAP_HPP
 
 
+// Local headers
+#include "pixelrgb.hpp"
+
+// C++ headers
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -19,6 +23,9 @@ namespace BMP
     typedef uint64_t LONG;
 
 
+
+
+
     enum class KernelMode
     {
         UNDEFINED,
@@ -26,6 +33,7 @@ namespace BMP
         OR,
         XOR
     };
+
 
     class FunctorKernel
     {
@@ -44,6 +52,7 @@ namespace BMP
         {
         }
 
+        // binary kernel
         void operator()(uint8_t * const output, const uint8_t * const l, const uint8_t * const r, const int count = 1)
         {
             for(int c{0}; c < count; ++ c)
@@ -67,6 +76,7 @@ namespace BMP
             }
         }
 
+        // unary kernel
         void operator()(uint8_t * const output, const uint8_t * const input, const int count = 1)
         {
             for(int c{0}; c < count; ++ c)
@@ -89,21 +99,54 @@ namespace BMP
                 }
             }
         }
+
+
+        // binary kernel
+        void operator()(PixelRGB& output, const PixelRGB& input_l, const PixelRGB& input_r)
+        {
+            if(mode == KernelMode::UNDEFINED)
+            {
+                // nothing
+            }
+            else if(mode == KernelMode::AND)
+            {
+                output = input_l & input_r;
+            }
+            else if(mode == KernelMode::OR)
+            {
+                output = input_l | input_r;
+            }
+            else if(mode == KernelMode::XOR)
+            {
+                output = input_l ^ input_r;
+            }
+        }
+
+        // unary kernel
+        void operator()(PixelRGB& output, const PixelRGB& input)
+        {
+            if(mode == KernelMode::UNDEFINED)
+            {
+                // nothing
+            }
+            else if(mode == KernelMode::AND)
+            {
+                output &= input;
+            }
+            else if(mode == KernelMode::OR)
+            {
+                output |= input;
+            }
+            else if(mode == KernelMode::XOR)
+            {
+                output ^= input;
+            }
+        }
         
 
     };
 
 
-    union PixelRGB
-    {
-        uint8_t array[3];
-        struct rgb
-        {
-            uint8_t b;
-            uint8_t g;
-            uint8_t r;
-        }
-    }
 
 
     // bitmap surface class
@@ -252,6 +295,9 @@ namespace BMP
         virtual // future classes should over-ride this depending on what formats that class can save
         void SaveAs(const std::string& filename) const;
 
+        virtual
+        std::vector<unsigned char> SaveMem() const;
+
         void LoadBITMAP(const std::string& filename);
 
         // Saves data in array to file with correctly formatted
@@ -259,6 +305,16 @@ namespace BMP
         void SaveAsBitmap(const std::string& filename) const;
 
         void Clear();
+
+        //std::vector<uint8_t>& Data();
+
+
+        ////////////////////////////////////////////////////////////////////////
+        // resize
+        ////////////////////////////////////////////////////////////////////////
+
+        // dumb algorithm
+        void Resize(const int width, const int height);
 
         ////////////////////////////////////////////////////////////////////////
         // translation
@@ -285,7 +341,7 @@ namespace BMP
         void RGBOperatorKernelUnary(const uint8_t* const rgb, FunctorKernel kernel);
 
         // apply a unary kernel to *this with argument of rgb as array of uin8_t[3]
-        void RGBOperatorKernelUnary(const uint8_t[3] rgb, FunctorKernel kernel);
+        //void RGBOperatorKernelUnary(const uint8_t rgb[3], FunctorKernel kernel);
 
         // apply a unary kernel to *this with argument of rgb as separated uint8_t color component values
         void RGBOperatorKernelUnary(const uint8_t r, const uint8_t g, const uint8_t b, FunctorKernel kernel);
