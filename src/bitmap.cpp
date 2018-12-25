@@ -606,6 +606,95 @@ void BMP::BITMAP::Translate(const int dx, const int dy)
 }
 
 
+void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel)
+{
+    // iterate over output
+    for(int y{0}; y < m_height; ++ y)
+    {
+        for(int x{0}; x < m_width; ++ x)
+        {
+            // bounds check
+            if(y >= m_height)
+            {
+
+            }
+            else if(y >= bitmap.m_height)
+            {
+
+            }
+            else
+            {
+                if(x >= m_width)
+                {
+
+                }
+                else if(x >= bitmap.m_width)
+                {
+
+                }
+                else
+                {
+                    functorkernel.operator()(&m_data[index(x, y) + 2], &bitmap.m_data[index(x, y) + 2]);
+                    functorkernel.operator()(&m_data[index(x, y) + 1], &bitmap.m_data[index(x, y) + 1]);
+                    functorkernel.operator()(&m_data[index(x, y) + 0], &bitmap.m_data[index(x, y) + 0]);
+                }
+            }
+        }
+    }
+}
+
+
+// TODO: versions where x and y are translated
+//void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap_l, const BITMAP& bitmap_r, FunctorKernel kernel, TranslationVector, TranslectorVector)
+void BMP::BITMAP::OperatorKernelBinary(const BITMAP& bitmap_l, const BITMAP& bitmap_r, FunctorKernel kernel)
+{
+    // iterate over output
+    int y_min{0};
+    int y_max{m_height};
+    if(y_max >= bitmap_l.m_height) y_max = bitmap_l.m_height;
+    if(y_max >= bitmap_r.m_height) y_max = bitmap_r.m_height;
+    for(int y{y_min}; y < y_max; ++ y)
+    {
+        int x_min{0};
+        int x_max{m_width};
+        if(x_max >= bitmap_l.m_width) x_max = bitmap_l.m_width;
+        if(x_max >= bitmap_r.m_width) x_max = bitmap_r.m_width;
+        for(int x{x_min}; x < x_max; ++ x)
+        {
+            void* const output_addr{&m_data[index(x, y)]};
+            const void* const input_addr_l{&bitmap_l.m_data[index(x, y)]};
+            const void* const input_addr_r{&bitmap_r.m_data[index(x, y)]};
+            PixelRGB &output_ref{*((PixelRGB* const)output_addr)};
+            const PixelRGB &input_ref_l{*((const PixelRGB* const)input_addr_l)};
+            const PixelRGB &input_ref_r{*((const PixelRGB* const)input_addr_r)};
+            functorkernel.operator()(output_ref, input_ref_l, input_ref_r, kernel);
+        }
+    }
+}
+
+void BMP::BITMAP::OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel)
+{
+    // iterate over output
+    int y_min{0};
+    int y_max{m_height};
+    if(y_max >= bitmap.m_height) y_max = bitmap.m_height;
+    for(int y{y_min}; y < y_max; ++ y)
+    {
+        int x_min{0};
+        int x_max{m_width};
+        if(x_max >= bitmap.m_width) x_max = bitmap.m_width;
+        for(int x{x_min}; x < x_max; ++ x)
+        {
+            void* const output_addr{&m_data[index(x, y)]};
+            const void* const input_addr{&bitmap.m_data[index(x, y)]};
+            PixelRGB &output_ref{*((PixelRGB* const)output_addr)};
+            const PixelRGB &input_ref{*((const PixelRGB* const)input_addr)};
+            functorkernel.operator()(output_ref, input_ref, kernel);
+        }
+    }
+}
+
+// TODO delete
 void BMP::BITMAP::Generic(const BITMAP& bitmap, FunctorKernel functorkernel)
 {
     // iterate over output

@@ -94,6 +94,18 @@ namespace BMP
     };
 
 
+    union PixelRGB
+    {
+        uint8_t array[3];
+        struct rgb
+        {
+            uint8_t b;
+            uint8_t g;
+            uint8_t r;
+        }
+    }
+
+
     // bitmap surface class
     // base class for bitmap canvas and bitmap font classes
     // contains method for blit (copy)
@@ -257,7 +269,30 @@ namespace BMP
         ////////////////////////////////////////////////////////////////////////
         // filters
         ////////////////////////////////////////////////////////////////////////
+
         
+        // abstraction to unary and binary pixel operations
+        // bounds checked binary/unary operator iterators
+
+        // apply a unary kernel to *this with argument of another bmp image
+        void OperatorKernelUnary(const BITMAP& bitmap, FunctorKernel kernel);
+
+        // apply a binary kernel to *this with argument of 2 other bmp images
+        void OperatorKernelBinary(const BITMAP& bitmap_l, const BITMAP& bitmap_r, FunctorKernel kernel);
+        // TODO: same but with arguments where l or r is uint8_t[3]
+
+        // apply a unary kernel to *this with argument of rgb as pointer to pixels
+        void RGBOperatorKernelUnary(const uint8_t* const rgb, FunctorKernel kernel);
+
+        // apply a unary kernel to *this with argument of rgb as array of uin8_t[3]
+        void RGBOperatorKernelUnary(const uint8_t[3] rgb, FunctorKernel kernel);
+
+        // apply a unary kernel to *this with argument of rgb as separated uint8_t color component values
+        void RGBOperatorKernelUnary(const uint8_t r, const uint8_t g, const uint8_t b, FunctorKernel kernel);
+        //void RGBOperatorKernelBinary(const uint8_t* const rgb, FunctorKernel kernel); // does not make sense?
+
+
+
         // assume 24bit bitmap format
         void RGBFilterGeneric(const uint8_t r, const uint8_t g, const uint8_t b, FunctorKernel functorkernel);
         void RGBFilterAND(const uint8_t r, const uint8_t g, const uint8_t b);
