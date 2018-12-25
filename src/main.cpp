@@ -121,11 +121,13 @@ int main()
         {
             if(window.getSize().y != texture.getSize().y)
             {
-                sf::Vector2i position(window.getPosition());
-                sf::VideoMode vm(texture.getSize().x, texture.getSize().y);
-                window.create(vm, "cpp-bitmap-lib", sf::Style::Titlebar | sf::Style::Close);
+                //sf::Vector2i position(window.getPosition());
+                //sf::VideoMode vm(texture.getSize().x, texture.getSize().y);
+                //window.create(vm, "cpp-bitmap-lib", sf::Style::Titlebar | sf::Style::Close);
                 //window.setPosition(position);
-                window.setPosition(sf::Vector2i(0, 0)); // TODO: position get/set do not agree
+                //window.setPosition(sf::Vector2i(0, 0)); // TODO: position get/set do not agree
+                window.setView(sf::View(sf::FloatRect(0.0, 0.0, texture.getSize().x, texture.getSize().y)));
+                window.setSize(sf::Vector2u(texture.getSize().x, texture.getSize().y));
             }
         }
         window.draw(sprite);
