@@ -19,6 +19,81 @@ namespace BMP
     typedef uint64_t LONG;
 
 
+    enum class KernelMode
+    {
+        UNDEFINED,
+        AND,
+        OR,
+        XOR
+    };
+
+    class FunctorKernel
+    {
+
+        KernelMode mode;
+
+    public:
+    
+        FunctorKernel()
+            : mode(KernelMode::UNDEFINED)
+        {
+        }
+
+        FunctorKernel(const KernelMode mode)
+            : mode(mode)
+        {
+        }
+
+        void operator()(uint8_t * const output, const uint8_t * const l, const uint8_t * const r, const int count = 1)
+        {
+            for(int c{0}; c < count; ++ c)
+            {
+                if(mode == KernelMode::UNDEFINED)
+                {
+                    // nothing
+                }
+                else if(mode == KernelMode::AND)
+                {
+                    output[c] = l[c] & r[c];
+                }
+                else if(mode == KernelMode::OR)
+                {
+                    output[c] = l[c] | r[c];
+                }
+                else if(mode == KernelMode::XOR)
+                {
+                    output[c] = l[c] ^ r[c];
+                }
+            }
+        }
+
+        void operator()(uint8_t * const output, const uint8_t * const input, const int count = 1)
+        {
+            for(int c{0}; c < count; ++ c)
+            {
+                if(mode == KernelMode::UNDEFINED)
+                {
+                    // nothing
+                }
+                else if(mode == KernelMode::AND)
+                {
+                    output[c] &= input[c];
+                }
+                else if(mode == KernelMode::OR)
+                {
+                    output[c] |= input[c];
+                }
+                else if(mode == KernelMode::XOR)
+                {
+                    output[c] ^= input[c];
+                }
+            }
+        }
+        
+
+    };
+
+
     // bitmap surface class
     // base class for bitmap canvas and bitmap font classes
     // contains method for blit (copy)
@@ -184,10 +259,15 @@ namespace BMP
         ////////////////////////////////////////////////////////////////////////
         
         // assume 24bit bitmap format
+        void RGBFilterGeneric(const uint8_t r, const uint8_t g, const uint8_t b, FunctorKernel functorkernel);
         void RGBFilterAND(const uint8_t r, const uint8_t g, const uint8_t b);
+        void RGBFilterOR(const uint8_t r, const uint8_t g, const uint8_t b);
+        void RGBFilterXOR(const uint8_t r, const uint8_t g, const uint8_t b);
 
-        // TODO: these filters will not work if images are not the same dimension!
+        void Generic(const BITMAP& bitmap, FunctorKernel functorkernel);
+        void AND(const BITMAP& bitmap);
         void OR(const BITMAP& bitmap);
+        void XOR(const BITMAP& bitmap);
 
     };
 

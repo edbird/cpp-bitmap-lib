@@ -528,8 +528,23 @@ void BMP::BITMAP::Clear()
 }
 
 
+void BMP::BITMAP::RGBFilterGeneric(const uint8_t r, const uint8_t g, const uint8_t b, FunctorKernel functorkernel)
+{
+    for(unsigned int y{0}; y < m_height; ++ y)
+    {
+        for(unsigned int x{0}; x < m_width; ++ x)
+        {
+            functorkernel.operator()(&m_data[index(x, y) + 2], &m_data[index(x, y) + 2], &r);
+            functorkernel.operator()(&m_data[index(x, y) + 1], &m_data[index(x, y) + 1], &g);
+            functorkernel.operator()(&m_data[index(x, y) + 0], &m_data[index(x, y) + 0], &b);
+        }
+    }
+}
+
 void BMP::BITMAP::RGBFilterAND(const uint8_t r, const uint8_t g, const uint8_t b)
 {
+    RGBFilterGeneric(r, g, b, FunctorKernel(KernelMode::AND));
+    /*
     for(unsigned int y{0}; y < m_height; ++ y)
     {
         for(unsigned int x{0}; x < m_width; ++ x)
@@ -540,6 +555,43 @@ void BMP::BITMAP::RGBFilterAND(const uint8_t r, const uint8_t g, const uint8_t b
             m_data[index(x, y) + 0] &= b;
         }
     }
+    */
+}
+
+
+void BMP::BITMAP::RGBFilterOR(const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    RGBFilterGeneric(r, g, b, FunctorKernel(KernelMode::OR));
+    /*
+    for(unsigned int y{0}; y < m_height; ++ y)
+    {
+        for(unsigned int x{0}; x < m_width; ++ x)
+        {
+            //m_data[x + y * m_width_memory] &=
+            m_data[index(x, y) + 2] |= r;
+            m_data[index(x, y) + 1] |= g;
+            m_data[index(x, y) + 0] |= b;
+        }
+    }
+    */
+}
+
+
+void BMP::BITMAP::RGBFilterXOR(const uint8_t r, const uint8_t g, const uint8_t b)
+{
+    RGBFilterGeneric(r, g, b, FunctorKernel(KernelMode::XOR));
+    /*
+    for(unsigned int y{0}; y < m_height; ++ y)
+    {
+        for(unsigned int x{0}; x < m_width; ++ x)
+        {
+            //m_data[x + y * m_width_memory] &=
+            m_data[index(x, y) + 2] ^= r;
+            m_data[index(x, y) + 1] ^= g;
+            m_data[index(x, y) + 0] ^= b;
+        }
+    }
+    */
 }
 
 
@@ -590,16 +642,158 @@ void BMP::BITMAP::Translate(const int dx, const int dy)
 }
 
 
-void BMP::BITMAP::OR(const BITMAP& bitmap)
+void BMP::BITMAP::Generic(const BITMAP& bitmap, FunctorKernel functorkernel)
 {
     // iterate over output
     for(int y{0}; y < m_height; ++ y)
     {
         for(int x{0}; x < m_width; ++ x)
         {
-            m_data[index(x, y) + 2] |= bitmap.m_data[index(x, y) + 2];
-            m_data[index(x, y) + 1] |= bitmap.m_data[index(x, y) + 1];
-            m_data[index(x, y) + 0] |= bitmap.m_data[index(x, y) + 0];
+            if(y >= m_height)
+            {
+
+            }
+            else if(y >= bitmap.m_height)
+            {
+
+            }
+            else
+            {
+                if(x >= m_width)
+                {
+
+                }
+                else if(x >= bitmap.m_width)
+                {
+
+                }
+                else
+                {
+                    functorkernel.operator()(&m_data[index(x, y) + 2], &bitmap.m_data[index(x, y) + 2]);
+                    functorkernel.operator()(&m_data[index(x, y) + 1], &bitmap.m_data[index(x, y) + 1]);
+                    functorkernel.operator()(&m_data[index(x, y) + 0], &bitmap.m_data[index(x, y) + 0]);
+                }
+            }
         }
     }
+}
+
+
+void BMP::BITMAP::AND(const BITMAP& bitmap)
+{
+    Generic(bitmap, FunctorKernel(KernelMode::AND));
+    // iterate over output
+    /*
+    for(int y{0}; y < m_height; ++ y)
+    {
+        for(int x{0}; x < m_width; ++ x)
+        {
+            if(y >= m_height)
+            {
+
+            }
+            else if(y >= bitmap.m_height)
+            {
+
+            }
+            else
+            {
+                if(x >= m_width)
+                {
+
+                }
+                else if(x >= bitmap.m_width)
+                {
+
+                }
+                else
+                {
+                    m_data[index(x, y) + 2] |= bitmap.m_data[index(x, y) + 2];
+                    m_data[index(x, y) + 1] |= bitmap.m_data[index(x, y) + 1];
+                    m_data[index(x, y) + 0] |= bitmap.m_data[index(x, y) + 0];
+                }
+            }
+        }
+    }
+    */
+}
+
+
+void BMP::BITMAP::OR(const BITMAP& bitmap)
+{
+    Generic(bitmap, FunctorKernel(KernelMode::OR));
+    // iterate over output
+    /*
+    for(int y{0}; y < m_height; ++ y)
+    {
+        for(int x{0}; x < m_width; ++ x)
+        {
+            if(y >= m_height)
+            {
+
+            }
+            else if(y >= bitmap.m_height)
+            {
+
+            }
+            else
+            {
+                if(x >= m_width)
+                {
+
+                }
+                else if(x >= bitmap.m_width)
+                {
+
+                }
+                else
+                {
+                    m_data[index(x, y) + 2] |= bitmap.m_data[index(x, y) + 2];
+                    m_data[index(x, y) + 1] |= bitmap.m_data[index(x, y) + 1];
+                    m_data[index(x, y) + 0] |= bitmap.m_data[index(x, y) + 0];
+                }
+            }
+        }
+    }
+    */
+}
+
+
+void BMP::BITMAP::XOR(const BITMAP& bitmap)
+{
+    Generic(bitmap, FunctorKernel(KernelMode::XOR));
+    // iterate over output
+    /*
+    for(int y{0}; y < m_height; ++ y)
+    {
+        for(int x{0}; x < m_width; ++ x)
+        {
+            if(y >= m_height)
+            {
+
+            }
+            else if(y >= bitmap.m_height)
+            {
+
+            }
+            else
+            {
+                if(x >= m_width)
+                {
+
+                }
+                else if(x >= bitmap.m_width)
+                {
+
+                }
+                else
+                {
+                    m_data[index(x, y) + 2] ^= bitmap.m_data[index(x, y) + 2];
+                    m_data[index(x, y) + 1] ^= bitmap.m_data[index(x, y) + 1];
+                    m_data[index(x, y) + 0] ^= bitmap.m_data[index(x, y) + 0];
+                }
+            }
+        }
+    }
+    */
 }
